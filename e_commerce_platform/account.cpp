@@ -290,6 +290,8 @@ int Account::searchProductByType() {
 		cout << endl;
 	}
 
+
+
 	delete db;
 	return 1;
 }
