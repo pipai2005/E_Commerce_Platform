@@ -116,20 +116,19 @@ void Account::displayPage(Database* db, int pageNumber) {
 	// 执行 SQL 查询
 	db->query();
 
-	//// 获取查询结果
-	//MYSQL_RES* result = mysql_store_result(&db->mysql);
-	//if (result == nullptr) {
-	//	std::cerr << "mysql_store_result() failed: " << mysql_error(&db->mysql) << std::endl;
-	//	return;
-	//}
+	MYSQL_RES* result = mysql_store_result(&db->mysql);
+	if (result == NULL) {
+		std::cerr << "mysql_store_result() failed: " << mysql_error(&db->mysql) << std::endl;
+		return;
+	}
 
-	int num_fields = mysql_num_fields(db->result);  // 获取列数
+	int num_fields = mysql_num_fields(result);  // 获取列数
 
-	MYSQL_FIELD* field = mysql_fetch_field(db->result);
+	MYSQL_FIELD* field = mysql_fetch_field(result);
 	MYSQL_ROW row;
 
 	// 遍历结果集
-	while (row = mysql_fetch_row(db->result)) {
+	while (row = mysql_fetch_row(result)) {
 		for (int i = 0; i < num_fields; i++) {
 			cout << field[i].name << ": ";
 			if (field[i].name == "type")
@@ -216,29 +215,21 @@ void Account::consuming(double e) {
 	}
 }
 
-//查找
-int Account::searchProductByName() {
-	string line_name;
-	cout << "请输入您要查找的商品名称" << endl;
-	cin >> line_name;
-
-	Database* db = new Database;
-	db->getConnect();
+// 显示商品信息
+void Account::showProductInfoByName(Database* db, string line_name) {
+	MYSQL_ROW row;
+	MYSQL_RES* result;
 	db->op = "select product_name, originPrice, discount_rate, product_remain, type, description "
 		"from products where product_name like '%" + line_name + "%'";
 	db->query();
+	result = mysql_store_result(&db->mysql);
 
-	if (mysql_fetch_lengths(db->result) == 0) {
-		cout << "不存在所找商品,请重新操作" << endl;
-		return 0;
-	}
-	int num_fields = mysql_num_fields(db->result);  // 获取列数
+	int num_fields = mysql_num_fields(result);  // 获取列数
 
-	MYSQL_FIELD* field = mysql_fetch_field(db->result);
-	MYSQL_ROW row;
+	MYSQL_FIELD* field = mysql_fetch_field(result);
 
 	// 遍历结果集
-	while (row = mysql_fetch_row(db->result)) {
+	while (row = mysql_fetch_row(result)) {
 		for (int i = 0; i < num_fields; i++) {
 			cout << field[i].name << ": ";
 			if (field[i].name == "type")
@@ -248,6 +239,27 @@ int Account::searchProductByName() {
 		}
 		cout << endl;
 	}
+
+	mysql_free_result(result);
+}
+//查找
+int Account::searchProductByName() {
+	string line_name;
+	cout << "请输入您要查找的商品名称" << endl;
+	cin >> line_name;
+
+	Database* db = new Database;
+
+	db->getConnect();
+	db->op = "select count(*) from products where product_name like '%" + line_name + "%'";
+	int res_num = db->getResultNum();
+	if (res_num == 0) {
+		cout << "不存在所找商品,请重新操作" << endl;
+		return 0;
+	}
+
+	// 确认了商品存在，接下来进行查询、展示商品
+	this->showProductInfoByName(db, line_name);
 
 	delete db;
 	return 1;
@@ -272,14 +284,18 @@ int Account::searchProductByType() {
 	db->op = "select product_name, originPrice, discount_rate, product_remain, type, description "
 		"from products where type = " + to_string(line_type);
 	db->query();
+	MYSQL_RES* result = mysql_store_result(&db->mysql);
+	if (result == NULL) {
+		std::cerr << "mysql_store_result() failed: " << mysql_error(&db->mysql) << std::endl;
+		return 0;
+	}
+	int num_fields = mysql_num_fields(result);  // 获取列数
 
-	int num_fields = mysql_num_fields(db->result);  // 获取列数
-
-	MYSQL_FIELD* field = mysql_fetch_field(db->result);
+	MYSQL_FIELD* field = mysql_fetch_field(result);
 	MYSQL_ROW row;
 
 	// 遍历结果集
-	while (row = mysql_fetch_row(db->result)) {
+	while (row = mysql_fetch_row(result)) {
 		for (int i = 0; i < num_fields; i++) {
 			cout << field[i].name << ": ";
 			if (field[i].name == "type")
@@ -290,8 +306,7 @@ int Account::searchProductByType() {
 		cout << endl;
 	}
 
-
-
+	mysql_free_result(result);
 	delete db;
 	return 1;
 }

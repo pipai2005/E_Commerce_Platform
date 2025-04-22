@@ -12,11 +12,12 @@ public:
 
     MYSQL mysql;
     string op;              // 操作执行语句
-    MYSQL_RES* result;
 
     Database();
     ~Database();
 
     void getConnect();
     void query();
+    // 获取表格行数
+	int getResultNum();
 };

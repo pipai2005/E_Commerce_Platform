@@ -144,7 +144,7 @@ void Bussiness::addProductStock() {
 
 	db->op = "insert into products values ( 0, " 
 		+ to_string(this->id) + ",'" + p->name + "','" + p->description + "'," + to_string(p->originPrice)
-		+ ", 1.0," + to_string(p->purchaseNum) + "," + to_string(p->type) + ")";
+		+ ", 1.0," + to_string(p->purchaseNum) + ",0 ," + to_string(p->type) + ")";
 
 	//db->op = "insert into products values(0, 1, 'abc', '23333', 3.000000, 1, 10, 4)";  // 这是可以正常输入的
 	// sb东西，不知道怎么就成功了
@@ -164,10 +164,9 @@ void Bussiness::showStock() {
 	db->op = "select product_name, originPrice, discount_rate, product_remain, type, description "
 			  "from products where business_id = " + to_string(this->id);
 	db->query();
-
 	MYSQL_RES* result = mysql_store_result(&db->mysql);
 	if (result == NULL) {
-		cout << "数据装载失败" << endl;
+		std::cerr << "mysql_store_result() failed: " << mysql_error(&db->mysql) << std::endl;
 		return;
 	}
 	int num_fields = mysql_num_fields(result);  // 获取列数
@@ -187,5 +186,7 @@ void Bussiness::showStock() {
 	}
 
 	cout << endl << "数据查询结束" << endl;
+
+	mysql_free_result(result);
 	delete db;
 }

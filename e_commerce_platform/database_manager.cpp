@@ -10,7 +10,6 @@ Database::Database(){
 
 Database::~Database() {
     // 释放数据库连接资源
-    mysql_free_result(result);
     mysql_close(&mysql);
 }
 
@@ -29,16 +28,25 @@ void Database::query() {
         cout << "mysql 操作语句未填写" << endl;
         return;
     }
-   
-
     if (mysql_query(&this->mysql, this->op.c_str())) {
-        cout << "查询失败" << endl;
+        std::cerr << "mysql_query() failed: " << mysql_error(&this->mysql) << std::endl;
         return;
     }
+     
+}
 
-    result = mysql_store_result(&this->mysql);
+// 获取表格行数
+int Database::getResultNum() {
+
+	this->query();
+    MYSQL_RES* result = mysql_store_result(&this->mysql);
     if (result == NULL) {
-        std::cerr << "mysql_store_result() failed: " << mysql_error(&mysql) << std::endl;
-        return;
+        std::cerr << "mysql_store_result() failed: " << mysql_error(&this->mysql) << std::endl;
+        return 0;
     }
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int num = atoi(row[0]);
+    mysql_free_result(result);
+
+    return num;
 }

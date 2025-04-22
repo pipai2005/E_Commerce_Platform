@@ -4,6 +4,7 @@
 #include<vector>
 #include<map>
 #include<fstream>
+#include<cassert>
 
 #include"products.h"
 #include"database_manager.h"
@@ -38,6 +39,7 @@ public:
 	void consuming(double e);
 
 	//查找(失败返回0)
+	void showProductInfoByName(Database* db, string line_name);
 	int searchProductByName();
 	int searchProductByType();
 
@@ -88,6 +90,10 @@ public:
 	void addShopCart();
 	//购物车删除
 	void delShopCart();
+	//修改购物车拟购买商品数量
+	void updateShopCartProductNum();
+	//修改商家可卖商品数，防止超额
+	void updateBusinessProductNum(Database* db, string line_name);
 	//生成订单
 	void generateOrder();
 };

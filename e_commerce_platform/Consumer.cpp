@@ -1,5 +1,7 @@
 #include"Account.h"
 
+extern map<int, string> productType;
+
 Consumer::Consumer(int id, string name, string p, double b, int t) {
 	this->id = id;
 	this->name = name;
@@ -96,36 +98,236 @@ void Consumer::selectOption() {
 //购物车添加
 void Consumer::addShopCart() {
 	string line_name;
-	cout << "请输入想买商品的全名" << endl;		//暂时不支持模糊选择
+	cout << "请输入想买商品的名称" << endl;		//暂时不支持模糊选择
 	cin >> line_name;
 
 	Database* db = new Database;
+	MYSQL_ROW row;
+	MYSQL_RES* result;
 	db->getConnect();
-	db->op = "select product_id,business_id,product_name, originPrice, discount_rate, product_remain "
-		"from products where product_name = '" + line_name + "'";
-	db->query();
-	unsigned long* len = mysql_fetch_lengths(db->result);
-	if (len == 0) {
-		cout << "商品库中没有所需商品，请重新操作" << endl;
+	db->op = "select count(*) from products where product_name like '%" + line_name + "%'";
+	int res_num = db->getResultNum();
+	if (res_num == 0) {
+		cout << "不存在所找商品,请重新操作" << endl;
 		return;
 	}
-	// 进一步选择对应编号的商品
-	MYSQL_ROW row = mysql_fetch_row(db->result);
 
+	// 确认了商品存在，接下来进行查询、展示商品
+	db->op = "select product_id,business_id,product_name, originPrice, discount_rate, product_remain "
+		"from products where product_name like '%" + line_name + "%'";
+	db->query();
+	result = mysql_store_result(&db->mysql);
+	if (result == NULL) {
+		std::cerr << "mysql_store_result() failed: " << mysql_error(&db->mysql) << std::endl;
+		return;
+	}
+	int num_fields = mysql_num_fields(result);  // 获取列数
+	MYSQL_FIELD* field = mysql_fetch_field(result);
+	// 遍历结果集
+	int id_num = 1; // 商品序号
+	while (row = mysql_fetch_row(result)) {
+		cout << "查询商品序号：" << id_num << endl;
+		for (int i = 0; i < num_fields; i++) {
+			cout << field[i].name << ": ";
+			cout << (row[i] ? row[i] : "NULL") << endl;
+		}
+		cout << endl;
+        id_num++;
+	}
+
+	// 进一步选择对应编号的商品
+	cout << "请输入想购买列表中的商品序号" << endl;
+    int select_id;
+    cin >> select_id;
+    // 判断选择是否合法
+	while (select_id < 0 || select_id >= res_num) {
+		cin.clear();
+		cin.ignore(INT_MAX, '\n');
+		cout << "输入商品序号错误，请重新操作" << endl;
+		cin>>select_id;
+	}	
+
+	// 接下来进行购物车写入操作
+	db->op = "select product_id,business_id,product_name "
+		"from products where product_name like '%" + line_name + "%'";
+	db->query();
+	result = mysql_store_result(&db->mysql);
+	for (int i = 1; i <= select_id; i++) {  // 跳过前面几行
+		row = mysql_fetch_row(result);
+	}
+	assert(row != NULL);
+	int product_id = atoi(row[0]);
+	int business_id = atoi(row[1]);
+	string product_name = row[2];
 	cout << "请输入您预计买入数量" << endl;
 	int num;
 	cin >> num;
-	// 接下来进行购物车写入操作
-	db->op = "insert into shopcart values (";
+	db->op = "insert into shopcart values (" + to_string(this->id) 
+			  + "," + to_string(business_id) + "," + to_string(product_id) 
+			  + "," + to_string(num) + ", '" + product_name + "', 0)";
+	cout << db->op << endl;
+	system("pause");
+	db->query();
 
+	cout << "添加购物车成功！" << endl;
+	mysql_free_result(result);
 	delete db;
 }
 //购物车删除
 void Consumer::delShopCart() {
+	// 购物车删除
+	string line_name;
+	cout << "请输入想删除的商品的名称" << endl;
+	cin >> line_name;
 
+	Database* db = new Database;
+	db->getConnect();
+	// 先算出查询商品在购物车是否存在
+	db->op = "select count(*) from products where product_name like '%" + line_name + "%'";
+	int res_num = db->getResultNum();
+	if (res_num == 0) {
+		cout << "不存在所找商品,请重新操作" << endl;
+		return;
+	}
+	// 确认了商品存在，接下来进行删除商品操作
+	db->op = "delete from shopcart where product_name like '%" + line_name + "%'";
+	db->query();
+
+	cout << "删除购物车成功！" << endl;
+
+	delete db;
 }
+
+void Consumer::updateShopCartProductNum() {
+	// 购物车删除
+	string line_name;
+	cout << "请输入想修改购物车内的商品名称" << endl;
+	cin >> line_name;
+
+	Database* db = new Database;
+	db->getConnect();
+	// 先算出查询商品在购物车是否存在
+	db->op = "select count(*) from products where product_name like '%" + line_name + "%'";
+	int res_num = db->getResultNum();
+	if (res_num == 0) {
+		cout << "不存在所找商品,请重新操作" << endl;
+		return;
+	}
+	// 确认了商品存在，接下来进行更新商品操作
+	cout << "请输入更改后的买入商品数量" << endl;
+	int num;
+	cin >> num;
+	db->op = "update shopcart set num = " + to_string(num)
+		      +" where product_name like '%" + line_name + "%'";
+	db->query();
+
+	cout << "更新购物车成功！" << endl;
+
+	delete db;
+}
+//修改商家可卖商品数，防止超额
+void Consumer::updateBusinessProductNum(Database* db, string line_name) {
+	// 确认了商品存在，接下来进行更新商品操作
+	int freeze_num; // 冻结商品数
+	db->op = "update products set product_remain = product_remain -"
+		"(select num from shopcart where product_name = '" + line_name + "'"
+		+ " and isCreateOrder <> 0), "
+		" freeze_num = freeze_num + (select num from shopcart where product_name = '" + line_name + "'"
+		" and isCreateOrder <> 0)"
+		" where product_name = '" + line_name + "'";
+	db->query();
+	
+	delete db;	
+}
+
 //生成订单
 void Consumer::generateOrder() {
+	// 购物车删除
+	string line_name;
+	cout << "请输入您想在购物车中生成订单的商品名称" << endl;
+	cin >> line_name;
 
+	Database* db = new Database;
+	MYSQL_ROW row;
+	MYSQL_RES* result;
+	db->getConnect();
+	// 先算出查询商品在购物车是否存在
+	db->op = "select count(*) from shopcart where product_name like '%" + line_name + "%' and"
+		     " consumer_id = " + to_string(this->id);
+	        +" isCreateOrder <> 0";
+
+	int res_num = db->getResultNum();
+	if (res_num == 0) {
+		cout << "不存在所找商品,请重新操作" << endl;
+		return;
+	}
+	// 确认了商品存在（上面是模糊匹配，要选择具体的商品进行订单生成）, 对没有生成订单的商品进行查询
+	db->op = "select product_id,business_id,product_name "
+		"from shopcart where product_name like '%" + line_name + "%'"
+		"and consumer_id = " + to_string(this->id);
+	    +" isCreateOrder <> 0";
+	db->query();
+	result = mysql_store_result(&db->mysql);
+	if (result == NULL) {
+		std::cerr << "mysql_store_result() failed: " << mysql_error(&db->mysql) << std::endl;
+		return;
+	}
+	int num_fields = mysql_num_fields(result);         // 获取列数
+	MYSQL_FIELD* field = mysql_fetch_field(result);    // 获取列名
+	// 遍历结果集
+	int id_num = 1; // 商品序号
+	while (row = mysql_fetch_row(result)) {
+		cout << "查询商品序号：" << id_num << endl;
+		for (int i = 0; i < num_fields; i++) {
+			cout << field[i].name << ": ";
+			cout << (row[i] ? row[i] : "NULL") << endl;
+		}
+		cout << endl;
+		id_num++;
+	}
+
+	// 进一步选择对应编号的商品
+	cout << "请输入想购买列表中的商品序号" << endl;
+	int select_id;
+	cin >> select_id;
+	// 判断选择是否合法
+	while (select_id < 0 || select_id >= res_num) {
+		cin.clear();
+		cin.ignore(INT_MAX, '\n');
+		cout << "输入商品序号错误，请重新操作" << endl;
+		cin >> select_id;
+	}
+
+	// 接下来进行生成订单操作
+	db->op = "select product_id,business_id,product_name,num "
+		"from shopcart where product_name like '%" + line_name + "%'"
+		"and consumer_id = " + to_string(this->id);
+	    +" isCreateOrder <> 0";
+	db->query();
+	result = mysql_store_result(&db->mysql);
+	for (int i = 1; i <= select_id; i++) {  // 跳过前面几行
+		row = mysql_fetch_row(result);
+	}
+	assert(row != NULL);
+	int product_id = atoi(row[0]);
+	int business_id = atoi(row[1]);
+	string product_name = row[2];
+	int freeze_num = atoi(row[3]);
+	// 生成订单的条件，商家现有商品数大于等于冻结商品数
+
+	// 1. 将购物车内的商品状态改为已生成订单
+	db->op = "update shopcart set isCreateOrder = 1"
+		" where product_id = " + to_string(product_id)
+		+ " and consumer_id = " + to_string(this->id);
+	db->query();
+	// 2. 改变商家冻结商品数和可卖商品数
+	db->op = "update products set product_remain = product_remain - "
+		+ to_string(freeze_num) + ", freeze_num = freeze_num +" + to_string(freeze_num)
+		+ " where product_id = " + to_string(product_id);
+	db->query();
+
+	cout << "生成订单成功！" << endl;
+
+	delete db;
 }
 
