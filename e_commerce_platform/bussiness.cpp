@@ -108,34 +108,34 @@ void Bussiness::discount() {
 
 // 添加商品入库
 void Bussiness::addProductStock() {
-	Product* p = new Product;
-	if (p == NULL)
-	{
-		cout << "商品类创建失败，请重新操作" << endl;
-		return;
-	}
+
+	int line_type;
+	int line_purchaseNum = 0;
+	string line_name;
+	string line_desc;
+	double line_price = 0;
 
 	cout << "请输入您要添加的商品名称" << endl;
-	cin >> p->name;
+	cin >> line_name;
 
 	cout << "请选择商品类型" << endl;
 	int num = productType.size();
 	for (int i = 1;i <= num;i++) {
 		cout << i << ": " << productType[i] << endl;
 	}
-	cin >> p->type;
-	while (p->type <= 0 || p->type > num) {
+	cin >> line_type;
+	while (line_type <= 0 || line_type > num) {
 		cout << "选择错误请重新操作" << endl;
 		cin.clear();
 		cin.ignore(INT_MAX, '\n');
-		cin >> p->type;
+		cin >> line_type;
 	}
 	cout << "请输入对商品的描述" << endl;
-	cin >> p->description;
+	cin >> line_desc;
 	cout << "请安排商品的价格" << endl;
-	cin >> p->originPrice;
+	cin >> line_price;
 	cout << "请确定进货量" << endl;
-	cin >> p->purchaseNum;
+	cin >> line_purchaseNum;
 
 	// 将商品信息加入数据库表格products
 	Database* db = new Database;
@@ -143,17 +143,15 @@ void Bussiness::addProductStock() {
 	// eg. insert into products values (0,1,'name','desc',0.55,0.25,10,3);
 
 	db->op = "insert into products values ( 0, " 
-		+ to_string(this->id) + ",'" + p->name + "','" + p->description + "'," + to_string(p->originPrice)
-		+ ", 1.0," + to_string(p->purchaseNum) + ",0 ," + to_string(p->type) + ")";
+		+ to_string(this->id) + ",'" + line_name + "','" + line_desc + "'," + to_string(line_price)
+		+ ", 1.0," + to_string(line_purchaseNum) + ",0 ," + to_string(line_type) + ")";
 
 	//db->op = "insert into products values(0, 1, 'abc', '23333', 3.000000, 1, 10, 4)";  // 这是可以正常输入的
-	// sb东西，不知道怎么就成功了
 
 	db->query();
 
 
 	delete db;
-	delete p;
 }
 
 // 查看库存
@@ -174,7 +172,9 @@ void Bussiness::showStock() {
 	MYSQL_FIELD* field = mysql_fetch_field(result);
 	MYSQL_ROW row;
 	// 遍历结果集
+	int index = 1;
 	while (row = mysql_fetch_row(result)) {
+		cout << "商品序号：" << index++ << endl;
 		for (int i = 0; i < num_fields; i++) {
 			cout << field[i].name << ": ";
 			if (field[i].name == "type")

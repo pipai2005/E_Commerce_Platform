@@ -113,8 +113,7 @@ void Consumer::addShopCart() {
 	}
 
 	// 确认了商品存在，接下来进行查询、展示商品
-	db->op = "select product_id,business_id,product_name, originPrice, discount_rate, product_remain "
-		"from products where product_name like '%" + line_name + "%'";
+	db->op = "select * from products where product_name like '%" + line_name + "%'";
 	db->query();
 	result = mysql_store_result(&db->mysql);
 	if (result == NULL) {
@@ -123,18 +122,34 @@ void Consumer::addShopCart() {
 	}
 	int num_fields = mysql_num_fields(result);  // 获取列数
 	MYSQL_FIELD* field = mysql_fetch_field(result);
+	// 存储结果集
+	vector<Product*> p;
+	while (row = mysql_fetch_row(result)) {
+		int type = atoi(row[8]);
+		switch (type) {
+		case 1:
+			p.push_back(new Book(atoi(row[0]), atoi(row[1]), row[2], row[3], atof(row[4]), atof(row[5]), atoi(row[6]), atoi(row[7]), type));
+			break;
+		case 2:
+			p.push_back(new Clothes(atoi(row[0]), atoi(row[1]), row[2], row[3], atof(row[4]), atof(row[5]), atoi(row[6]), atoi(row[7]), type));
+			break;
+		case 3:
+			p.push_back(new Electronic(atoi(row[0]), atoi(row[1]), row[2], row[3], atof(row[4]), atof(row[5]), atoi(row[6]), atoi(row[7]), type));
+			break;
+		case 4:
+			p.push_back(new Food(atoi(row[0]), atoi(row[1]), row[2], row[3], atof(row[4]), atof(row[5]), atoi(row[6]), atoi(row[7]), type));
+			break;
+		default:
+			cout << "商品类型错误" << endl;
+			break;
+		}
+	}
 	// 遍历结果集
 	int id_num = 1; // 商品序号
-	while (row = mysql_fetch_row(result)) {
-		cout << "查询商品序号：" << id_num << endl;
-		for (int i = 0; i < num_fields; i++) {
-			cout << field[i].name << ": ";
-			cout << (row[i] ? row[i] : "NULL") << endl;
-		}
-		cout << endl;
-        id_num++;
+	for (int i = 1; i <= res_num;i++) {
+		cout << "查询商品序号：" << i << endl;
+		p[i - 1]->showProductInfo();
 	}
-
 	// 进一步选择对应编号的商品
 	cout << "请输入想购买列表中的商品序号" << endl;
     int select_id;
@@ -147,26 +162,14 @@ void Consumer::addShopCart() {
 		cin>>select_id;
 	}	
 
-	// 接下来进行购物车写入操作
-	db->op = "select product_id,business_id,product_name "
-		"from products where product_name like '%" + line_name + "%'";
-	db->query();
-	result = mysql_store_result(&db->mysql);
-	for (int i = 1; i <= select_id; i++) {  // 跳过前面几行
-		row = mysql_fetch_row(result);
-	}
-	assert(row != NULL);
-	int product_id = atoi(row[0]);
-	int business_id = atoi(row[1]);
-	string product_name = row[2];
+	Product* selectedProduct = p[select_id - 1];
 	cout << "请输入您预计买入数量" << endl;
 	int num;
 	cin >> num;
 	db->op = "insert into shopcart values (" + to_string(this->id) 
-			  + "," + to_string(business_id) + "," + to_string(product_id) 
-			  + "," + to_string(num) + ", '" + product_name + "', 0)";
-	cout << db->op << endl;
-	system("pause");
+			  + "," + to_string(selectedProduct->business_id) + "," + to_string(selectedProduct->product_id)
+			  + "," + to_string(num) + ", '" + selectedProduct->name + "', 0)";
+
 	db->query();
 
 	cout << "添加购物车成功！" << endl;
@@ -224,20 +227,6 @@ void Consumer::updateShopCartProductNum() {
 	cout << "更新购物车成功！" << endl;
 
 	delete db;
-}
-//修改商家可卖商品数，防止超额
-void Consumer::updateBusinessProductNum(Database* db, string line_name) {
-	// 确认了商品存在，接下来进行更新商品操作
-	int freeze_num; // 冻结商品数
-	db->op = "update products set product_remain = product_remain -"
-		"(select num from shopcart where product_name = '" + line_name + "'"
-		+ " and isCreateOrder <> 0), "
-		" freeze_num = freeze_num + (select num from shopcart where product_name = '" + line_name + "'"
-		" and isCreateOrder <> 0)"
-		" where product_name = '" + line_name + "'";
-	db->query();
-	
-	delete db;	
 }
 
 //生成订单
@@ -297,7 +286,7 @@ void Consumer::generateOrder() {
 		cout << "输入商品序号错误，请重新操作" << endl;
 		cin >> select_id;
 	}
-
+	mysql_free_result(result);
 	// 接下来进行生成订单操作
 	db->op = "select product_id,business_id,product_name,num "
 		"from shopcart where product_name like '%" + line_name + "%'"
@@ -313,7 +302,7 @@ void Consumer::generateOrder() {
 	int business_id = atoi(row[1]);
 	string product_name = row[2];
 	int freeze_num = atoi(row[3]);
-	// 生成订单的条件，商家现有商品数大于等于冻结商品数
+	// 生成订单的条件，商家现有商品数大于等于购物车内商品数
 
 	// 1. 将购物车内的商品状态改为已生成订单
 	db->op = "update shopcart set isCreateOrder = 1"

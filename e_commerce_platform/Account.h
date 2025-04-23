@@ -6,12 +6,11 @@
 #include<fstream>
 #include<cassert>
 
-#include"products.h"
+#include"product.h"
 #include"database_manager.h"
 
 
 #define ACCOUNT_FILENAME "accountTable.txt"
-#define PAD_LENGTH 8   // 编号填充长度（命名需要用）
 
 class Account {
 public:
@@ -92,8 +91,6 @@ public:
 	void delShopCart();
 	//修改购物车拟购买商品数量
 	void updateShopCartProductNum();
-	//修改商家可卖商品数，防止超额
-	void updateBusinessProductNum(Database* db, string line_name);
 	//生成订单
 	void generateOrder();
 };
