@@ -142,7 +142,7 @@ void ECManager::registerAccount() {
 }
 
 void ECManager::loginAccount(){
-	string line_name;				// 输入行的账户名
+	string line_name;			// 输入行的账户名
 	string line_password;		// 输入行的密码
 	int line_type;				// 输入行的账户类型
 

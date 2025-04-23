@@ -5,10 +5,11 @@
 int main() {
 
 	ECManager* ecManager = new ECManager;
-	ecManager->initAccount();
 
 	int select;
 	while (1) {
+		// 进入主界面初始化用户数据
+		ecManager->initAccount();
 		ecManager->showOption();
 		
 		cout << "请输入您的操作" << endl;

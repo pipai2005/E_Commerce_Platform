@@ -65,19 +65,19 @@ void Bussiness::selectOption() {
 			this->updatePassword();
 			break;
 
-		case 5:
+		case 5:		// 余额查询
 			this->getBalance();
 			break;
 
-		case 6:
+		case 6:		// 余额充值
 			this->paying();
 			break;
 
-		case 7:
+		case 7:		// 显示账户信息
 			this->showAccount();
 			break;
 
-		case 8: 
+		case 8: 	// 查找商品
 			this->searchProduct();
 			break;
 		default:

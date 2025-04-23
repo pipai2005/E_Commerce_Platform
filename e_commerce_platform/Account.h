@@ -14,10 +14,12 @@
 
 class Account {
 public:
+	Account() : id(0), balance(0), type(0) {} // 默认构造函数
 
 	// 账户界面选项
 	virtual void showAccountOption() = 0;
 	virtual void selectOption() = 0;
+
 	// 显示账户类型
 	virtual string getAccountType() = 0;
 	// 修改密码
@@ -31,7 +33,7 @@ public:
 	// 显示账户信息
 	void showAccount();
 	// 余额查询
-	double getBalance();
+	void getBalance();
 	// 余额充值
 	void paying();
 	// 余额消费
@@ -46,8 +48,8 @@ public:
 	int id;					//序号
 	string name;			//账户名
 	string password;		//密码
-	double balance = 0;		//账户余额
-	int type = 0;			//账户类型：1：bussiness / 2: consumer
+	double balance;		//账户余额
+	int type;			//账户类型：1：bussiness / 2: consumer
 };
 
 class Bussiness : public Account {

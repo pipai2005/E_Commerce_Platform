@@ -3,9 +3,8 @@
 #include<iostream>
 #include<string>
 
-using namespace std;
-
 #define DB_PSW "Hua20050924"
+using namespace std;
 
 class Database {
 public:

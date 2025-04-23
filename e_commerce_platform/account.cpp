@@ -194,15 +194,73 @@ void Account::searchProduct() {
 }
 
 // 余额查询
-double Account::getBalance() {
-	return this->balance;
+void Account::getBalance() {
+	cout << "您当前的余额：" << this->balance;
 }
 // 余额充值
 void Account::paying() {
 	double e;
 	cout << "请输入充值额度" << endl;
 	cin >> e;
-	this->balance += e;
+	while (e <= 0) {
+		cout << "充值额度输入错误，请重新输入" << endl;
+		cin.clear();
+		cin.ignore(INT_MAX, '\n');
+		cin >> e;
+	}
+	// 改变消费者或商家余额
+	ifstream ifs;
+	ifs.open(ACCOUNT_FILENAME, ios::in);
+	vector<Account*> accounts;
+	// 如果文件中有账户信息
+	int product_num;
+	int bussiness_num;
+	int consumer_num;
+	int account_num;
+	if (ifs.is_open()) {
+
+		ifs >> product_num;
+		ifs >> bussiness_num;
+		ifs >> consumer_num;
+		ifs >> account_num;
+
+		for (int i = 0;i < account_num;i++) {
+			int tmp_id;
+			string tmp_name;
+			string tmp_password;
+			double tmp_balance;
+			int tmp_type;
+
+			Account* ac;
+			ifs >> tmp_id >> tmp_name >> tmp_password >> tmp_balance >> tmp_type;
+			if (tmp_type == 1) {
+				ac = new Bussiness(tmp_id, tmp_name, tmp_password, tmp_balance, tmp_type);
+
+			}
+			else {
+				ac = new Consumer(tmp_id, tmp_name, tmp_password, tmp_balance, tmp_type);
+			}
+			accounts.push_back(ac);
+
+		}
+		ifs.close();
+	}
+	// 先找到商家
+	int id = this->id;
+	accounts[id - 1]->balance += e;
+	this->balance = accounts[id - 1]->balance;
+	// 接下来存用户信息(文件操作)
+	ofstream ofs;
+	ofs.open(ACCOUNT_FILENAME, ios::out);
+	ofs << product_num << " " << bussiness_num << " "
+		<< consumer_num << " " << account_num << endl;
+	for (vector<Account*>::iterator it = accounts.begin();it != accounts.end();it++) {
+		Account* acc = *it;
+		ofs << acc->id << " " << acc->name << " " << acc->password << " " << acc->balance << " " << acc->type << endl;
+	}
+	ofs.close();
+
+	cout << "余额充值成功！当前余额数：" << accounts[id-1]->balance <<endl;
 }
 // 余额消费
 void Account::consuming(double e) {

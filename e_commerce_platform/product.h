@@ -16,7 +16,7 @@ public:
 
 	virtual double getPrice() = 0;
 
-	void showProductInfo();
+	void showProductInfo(int level);	// level= 0: 显示基本信息 / level = 1: 显示详细信息
 
 	int product_id;					    //商品序号
 	int business_id;					//商家序号

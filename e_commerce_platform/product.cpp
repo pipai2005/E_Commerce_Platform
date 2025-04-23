@@ -25,13 +25,16 @@ Product::Product(int product_id, int business_id, string name, string descriptio
 	this->type = type;	
 }
 
-void Product::showProductInfo() {
+void Product::showProductInfo(int level) {
 	cout << "商品编号：" << product_id << endl;
-	cout << "商家序号：" << business_id << endl;
+	cout << "商家编号：" << business_id << endl;
 	cout << "商品名称：" << name << endl;
-	cout << "商品描述：" << description << endl;
-	cout << "商品原价：" << originPrice << endl;
-	cout << "商品折扣率：" << dicount_rate << endl;
+	if (level == 1) {
+		cout << "商品描述：" << description << endl;
+		cout << "商品原价：" << originPrice << endl;
+		cout << "商品折扣率：" << dicount_rate << endl;
+		cout << "商品剩余量：" << product_remain << endl;
+	}
 	cout << "商品类型：" << productType[type] << endl;
 	cout << endl;
 }
