@@ -173,7 +173,7 @@ void ECManager::loginAccount(){
 		if ((*it)->name == line_name) {
 			isStore = 1;
 			ac = (*it);
-			if ((*it)->password == line_password) {
+			if ((*it)->password == line_password && (*it)->type== line_type) {
 				cout << "登录成功！" << endl;
 				cout << endl;
 				system("pause");

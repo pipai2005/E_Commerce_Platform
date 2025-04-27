@@ -30,12 +30,13 @@ void Consumer::showAccountOption() {
 	cout << "*********************************************" << endl;
 	cout << "*************** 1 购物车添加 *****************" << endl;
 	cout << "*************** 2 购物车删除 *****************" << endl;
-	cout << "*************** 3 生成订单 *******************" << endl;
-	cout << "*************** 4 修改密码 *******************" << endl;
-	cout << "*************** 5 余额查询 *******************" << endl;
-	cout << "*************** 6 余额充值 *******************" << endl;
-	cout << "*************** 7 用户信息 *******************" << endl;
-	cout << "*************** 8 查找商品 *******************" << endl;
+	cout << "*************** 3 购物车修改 *****************" << endl;
+	cout << "*************** 4 生成订单 *******************" << endl;
+	cout << "*************** 5 修改密码 *******************" << endl;
+	cout << "*************** 6 余额查询 *******************" << endl;
+	cout << "*************** 7 余额充值 *******************" << endl;
+	cout << "*************** 8 用户信息 *******************" << endl;
+	cout << "*************** 9 查找商品 *******************" << endl;
 	cout << "*************** 0 退出登录 *******************" << endl;
 	cout << "*********************************************" << endl;
 	cout << endl;
@@ -51,6 +52,7 @@ void Consumer::selectOption() {
 		switch (select)
 		{
 		case 0:		// 退出登录
+			cout << "恭喜消费者退出登录成功" << endl;
 			return;
 
 		case 1:		// 购物车添加
@@ -61,27 +63,31 @@ void Consumer::selectOption() {
 			this->delShopCart();
 			break;
 
-		case 3:		// 生成订单
+		case 3:
+			this->updateShopCartProductNum();
+			break;
+
+		case 4:		// 生成订单
 			this->generateOrder();
 			break;
 
-		case 4:		// 修改密码
+		case 5:		// 修改密码
 			this->updatePassword();
 			break;
 
-		case 5:		// 余额查询
+		case 6:		// 余额查询
 			this->getBalance();
 			break;
 
-		case 6:		// 余额充值
+		case 7:		// 余额充值
 			this->paying();
 			break;
 
-		case 7:		// 显示账户信息
+		case 8:		// 显示账户信息
 			this->showAccount();
 			break;
 		
-		case 8:		// 查找商品
+		case 9:		// 查找商品
 			this->searchProduct();
 			break;
 
@@ -98,7 +104,7 @@ void Consumer::selectOption() {
 //购物车添加
 void Consumer::addShopCart() {
 	string line_name;
-	cout << "请输入想买商品的名称" << endl;		//暂时不支持模糊选择
+	cout << "请输入想买商品的名称" << endl;
 	cin >> line_name;
 
 	Database* db = new Database;
@@ -166,12 +172,6 @@ void Consumer::addShopCart() {
 	cout << "请输入您预计买入数量" << endl;
 	int num;
 	cin >> num;
-	db->op = "insert into shopcart values (0, " + to_string(this->id) 
-			  + "," + to_string(selectedProduct->business_id) + "," + to_string(selectedProduct->product_id)
-			  + "," + to_string(num) + ", '" + selectedProduct->name + "', 0,"
-			  + to_string(selectedProduct->type) + ")";
-
-	db->query();
 	// 1. 判断商家现有商品数大于等于购物车内商品数
 	db->op = "select product_remain from products where product_id = "
 			+ to_string(selectedProduct->product_id);
@@ -183,15 +183,21 @@ void Consumer::addShopCart() {
 	}
 	row = mysql_fetch_row(result);
 	int product_remain = atoi(row[0]);
-	if (product_remain < selectedProduct->freeze_num) {
+	if (product_remain < num) {
 		cout << "商家现有商品数：" << product_remain << endl;
 		cout << "商品数不足，无法加入购物车" << endl;
 		return;
 	}
-	// 2. 改变商家冻结商品数和可卖商品数
+	// 2. 添加购物车
+	db->op = "insert into shopcart values (0, " + to_string(this->id)
+		+ "," + to_string(selectedProduct->business_id) + "," + to_string(selectedProduct->product_id)
+		+ "," + to_string(num) + ", '" + selectedProduct->name + "', 0,"
+		+ to_string(selectedProduct->type) + ")";
+	db->query();
+	// 3. 改变商家冻结商品数和可卖商品数
 	db->op = "update products set product_remain = product_remain - "
-		+ to_string(selectedProduct->freeze_num) + ", freeze_num = freeze_num +"
-		+ to_string(selectedProduct->freeze_num)
+		+ to_string(num) + ", freeze_num = freeze_num +"
+		+ to_string(num)
 		+ " where product_id = " + to_string(selectedProduct->product_id);
 	db->query();
 
@@ -231,20 +237,84 @@ void Consumer::updateShopCartProductNum() {
 	cin >> line_name;
 
 	Database* db = new Database;
+	MYSQL_RES* result;
+	MYSQL_ROW row;
 	db->getConnect();
 	// 先算出查询商品在购物车是否存在
-	db->op = "select count(*) from products where product_name like '%" + line_name + "%'";
+	db->op = "select count(*) from shopcart where product_name like '%" + line_name + "%'";
 	int res_num = db->getResultNum();
 	if (res_num == 0) {
 		cout << "不存在所找商品,请重新操作" << endl;
 		return;
 	}
+	// 确认了商品存在（上面是模糊匹配，要选择具体的商品进行订单生成）, 对没有生成订单的商品进行查询
+	db->op = "select shopcart_id,product_id,business_id,product_name,num,type "
+		"from shopcart where product_name like '%" + line_name + "%'"
+		"and consumer_id = " + to_string(this->id);
+	+" isCreateOrder = 0";
+	db->query();
+	result = mysql_store_result(&db->mysql);
+	if (result == NULL) {
+		std::cerr << "mysql_store_result() failed: " << mysql_error(&db->mysql) << std::endl;
+		return;
+	}
+	// 存储结果集
+	vector<Product*> p;
+	while (row = mysql_fetch_row(result)) {
+		int type = atoi(row[5]); // 规定type在第6列
+		switch (type) {		// shopcart_id暂时存在product->product_remain中
+		case 1:
+			p.push_back(new Book(atoi(row[1]), atoi(row[2]), row[3], "", 1, 1, atoi(row[0]), atoi(row[4]), type));
+			break;
+		case 2:
+			p.push_back(new Clothes(atoi(row[1]), atoi(row[2]), row[3], "", 1, 1, atoi(row[0]), atoi(row[4]), type));
+			break;
+		case 3:
+			p.push_back(new Electronic(atoi(row[1]), atoi(row[2]), row[3], "", 1, 1, atoi(row[0]), atoi(row[4]), type));
+			break;
+		case 4:
+			p.push_back(new Food(atoi(row[1]), atoi(row[2]), row[3], "", 1, 1, atoi(row[0]), atoi(row[4]), type));
+			break;
+		default:
+			cout << "商品类型错误" << endl;
+			break;
+		}
+	}
+	// 遍历结果集
+	int id_num = 1; // 商品序号
+	for (int i = 1; i <= res_num;i++) {
+		cout << "查询购物车序号：" << i << endl;
+		cout << "预购买数量：" << p[i - 1]->freeze_num << endl;
+		p[i - 1]->showProductInfo(0);
+	}
+
+	// 进一步选择对应编号的商品
+	cout << "请输入想修改的购物车序号" << endl;
+	int select_id;
+	cin >> select_id;
+	// 判断选择是否合法
+	while (select_id < 0 || select_id > res_num) {
+		cin.clear();
+		cin.ignore(INT_MAX, '\n');
+		cout << "输入商品序号错误，请重新操作" << endl;
+		cin >> select_id;
+	}
+	mysql_free_result(result);
+	Product* selectedProduct = p[select_id - 1];
 	// 确认了商品存在，接下来进行更新商品操作
+	// 1. 改变购物车内商品数
 	cout << "请输入更改后的买入商品数量" << endl;
 	int num;
 	cin >> num;
 	db->op = "update shopcart set num = " + to_string(num)
-		      +" where product_name like '%" + line_name + "%'";
+		+ " where shopcart_id = " + to_string(selectedProduct->product_remain);
+	db->query();
+	// 2. 改变商家冻结商品数和可卖商品数
+	int dif_num = num - selectedProduct->freeze_num;
+	db->op = "update products set product_remain = product_remain - "
+		+ to_string(dif_num) + ", freeze_num = freeze_num +"
+		+ to_string(dif_num)
+		+ " where product_id = " + to_string(selectedProduct->product_id);
 	db->query();
 
 	cout << "更新购物车成功！" << endl;

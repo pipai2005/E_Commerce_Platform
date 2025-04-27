@@ -47,6 +47,7 @@ void Bussiness::selectOption() {
 		switch (select)
 		{
 		case 0:		// 退出登录
+			cout << "恭喜商家退出登录成功" << endl;
 			return;
 
 		case 1:		// 打折
@@ -150,7 +151,7 @@ void Bussiness::addProductStock() {
 
 	db->query();
 
-
+	cout << "商品添加成功" << endl;
 	delete db;
 }
 
