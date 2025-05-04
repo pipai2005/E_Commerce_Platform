@@ -3,6 +3,7 @@
 #include<mysql.h>
 #include<map>
 #include"database_manager.h"
+#include"../e_commerce_platform/tcp_socket.h"
 
 using namespace std;
 
@@ -16,7 +17,7 @@ public:
 
 	virtual double getPrice() = 0;
 
-	void showProductInfo(int level);	// level= 0: 显示基本信息 / level = 1: 显示详细信息
+	void showProductInfo(MySocket* mySocket, int level);	// level= 0: 显示基本信息 / level = 1: 显示详细信息
 
 	int product_id;					    //商品序号
 	int business_id;					//商家序号

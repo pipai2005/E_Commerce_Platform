@@ -25,7 +25,7 @@ string Consumer::getAccountType() {
 
 // 消费者的界面选项
 void Consumer::showAccountOption() {
-	cout << "*********************************************" << endl;
+	/*cout << "*********************************************" << endl;
 	cout << "*************  消费者进行操作  ***************" << endl;
 	cout << "*********************************************" << endl;
 	cout << "*************** 1 购物车添加 *****************" << endl;
@@ -39,15 +39,16 @@ void Consumer::showAccountOption() {
 	cout << "*************** 9 查找商品 *******************" << endl;
 	cout << "*************** 0 退出登录 *******************" << endl;
 	cout << "*********************************************" << endl;
-	cout << endl;
+	cout << endl;*/
 }
 void Consumer::selectOption() {
 	int select;
 	while (1) {
 		this->showAccountOption();
 
-		cout << "请输入您的操作" << endl;
-		cin >> select;
+		char buffer[BUFSIZ] = { 0 };
+		this->cfd->receiveData(buffer, BUFSIZ);
+		select = buffer[0] - '0';
 
 		switch (select)
 		{
@@ -92,20 +93,22 @@ void Consumer::selectOption() {
 			break;
 
 		default:
-			system("cls");
 			break;
 		}
 		cout << endl;
-		system("pause");
-		system("cls");
+
 	}
 }
 
 //购物车添加
 void Consumer::addShopCart() {
-	string line_name;
-	cout << "请输入想买商品的名称" << endl;
-	cin >> line_name;
+	cout << "客户端购物车添加商品操作" << endl;
+	// 传送给客户端数据 （0 / 1）: (商家库存太少 / 成功)
+
+	char buffer[BUFSIZ] = { 0 };
+	this->cfd->receiveData(buffer, BUFSIZ);
+	string line_name = buffer;
+	memset(buffer, 0, BUFSIZ);
 
 	Database* db = new Database;
 	MYSQL_ROW row;
@@ -114,7 +117,8 @@ void Consumer::addShopCart() {
 	db->op = "select count(*) from products where product_name like '%" + line_name + "%'";
 	int res_num = db->getResultNum();
 	if (res_num == 0) {
-		cout << "不存在所找商品,请重新操作" << endl;
+		//cout << "不存在所找商品,请重新操作" << endl;
+		this->cfd->sendData("-1", BUFSIZ);
 		return;
 	}
 
@@ -150,28 +154,27 @@ void Consumer::addShopCart() {
 			break;
 		}
 	}
-	// 遍历结果集
+	// 发送给客户端遍历结果集
+	// 1. 发送给客户端商品数量
+	string sendBuffer = to_string(res_num);
+	this->cfd->sendData(sendBuffer.c_str(), sendBuffer.size());
+	// 2. 遍历结果集
 	int id_num = 1; // 商品序号
 	for (int i = 1; i <= res_num;i++) {
-		cout << "查询商品序号：" << i << endl;
-		p[i - 1]->showProductInfo(1);
+		p[i - 1]->showProductInfo(this->cfd, 1);
 	}
-	// 进一步选择对应编号的商品
-	cout << "请输入想购买列表中的商品序号" << endl;
-    int select_id;
-    cin >> select_id;
-    // 判断选择是否合法
-	while (select_id < 0 || select_id > res_num) {
-		cin.clear();
-		cin.ignore(INT_MAX, '\n');
-		cout << "输入商品序号错误，请重新操作" << endl;
-		cin>>select_id;
-	}	
 
+	// 接收从客户端传送的 选择的 对应编号的商品
+	this->cfd->receiveData(buffer, BUFSIZ);
+	int select_id = atoi(buffer);
+	memset(buffer, 0, BUFSIZ);
+   
 	Product* selectedProduct = p[select_id - 1];
-	cout << "请输入您预计买入数量" << endl;
-	int num;
-	cin >> num;
+	// 从客户端接收预计买入数量
+	this->cfd->receiveData(buffer, BUFSIZ);
+	int num = atoi(buffer);
+	memset(buffer,0,BUFSIZ);
+	
 	// 1. 判断商家现有商品数大于等于购物车内商品数
 	db->op = "select product_remain from products where product_id = "
 			+ to_string(selectedProduct->product_id);
@@ -184,8 +187,9 @@ void Consumer::addShopCart() {
 	row = mysql_fetch_row(result);
 	int product_remain = atoi(row[0]);
 	if (product_remain < num) {
-		cout << "商家现有商品数：" << product_remain << endl;
-		cout << "商品数不足，无法加入购物车" << endl;
+		/*cout << "商家现有商品数：" << product_remain << endl;
+		cout << "商品数不足，无法加入购物车" << endl;*/
+		this->cfd->sendData("0", BUFSIZ);
 		return;
 	}
 	// 2. 添加购物车
@@ -201,16 +205,20 @@ void Consumer::addShopCart() {
 		+ " where product_id = " + to_string(selectedProduct->product_id);
 	db->query();
 
-	cout << "添加购物车成功！" << endl;
+	this->cfd->sendData("1", BUFSIZ);
 	mysql_free_result(result);
 	delete db;
 }
 //购物车删除
 void Consumer::delShopCart() {
 	// 购物车删除
+	cout << "* 客户端购物车删除商品操作" << endl;
+
+	char buffer[BUFSIZ] = { 0 };
+	this->cfd->receiveData(buffer, BUFSIZ);
 	string line_name;
-	cout << "请输入想删除的商品的名称" << endl;
-	cin >> line_name;
+	line_name = buffer;
+	memset(buffer, 0, BUFSIZ);
 
 	Database* db = new Database;
 	db->getConnect();
@@ -218,23 +226,28 @@ void Consumer::delShopCart() {
 	db->op = "select count(*) from products where product_name like '%" + line_name + "%'";
 	int res_num = db->getResultNum();
 	if (res_num == 0) {
-		cout << "不存在所找商品,请重新操作" << endl;
+		this->cfd->sendData("-1", BUFSIZ);
 		return;
 	}
 	// 确认了商品存在，接下来进行删除商品操作
 	db->op = "delete from shopcart where product_name like '%" + line_name + "%'";
 	db->query();
 
-	cout << "删除购物车成功！" << endl;
+	this->cfd->sendData("1", BUFSIZ);
+	cout << "客户端删除购物车成功！" << endl;
 
 	delete db;
 }
 
 void Consumer::updateShopCartProductNum() {
-	// 购物车删除
+	cout << "* 客户端修改购物车内商品买入数量" << endl;
+
+	char buffer[BUFSIZ] = { 0 };
+	string sendBuffer;
 	string line_name;
-	cout << "请输入想修改购物车内的商品名称" << endl;
-	cin >> line_name;
+	this->cfd->receiveData(buffer, BUFSIZ);
+	line_name = buffer;
+	memset(buffer, 0, BUFSIZ);
 
 	Database* db = new Database;
 	MYSQL_RES* result;
@@ -244,14 +257,14 @@ void Consumer::updateShopCartProductNum() {
 	db->op = "select count(*) from shopcart where product_name like '%" + line_name + "%'";
 	int res_num = db->getResultNum();
 	if (res_num == 0) {
-		cout << "不存在所找商品,请重新操作" << endl;
+		this->cfd->sendData("-1", BUFSIZ);
 		return;
 	}
 	// 确认了商品存在（上面是模糊匹配，要选择具体的商品进行订单生成）, 对没有生成订单的商品进行查询
 	db->op = "select shopcart_id,product_id,business_id,product_name,num,type "
-		"from shopcart where product_name like '%" + line_name + "%'"
-		"and consumer_id = " + to_string(this->id);
-	+" isCreateOrder = 0";
+		" from shopcart where product_name like '%" + line_name + "%' "
+		" and consumer_id = " + to_string(this->id)
+	  + " and isCreateOrder = 0";
 	db->query();
 	result = mysql_store_result(&db->mysql);
 	if (result == NULL) {
@@ -280,36 +293,49 @@ void Consumer::updateShopCartProductNum() {
 			break;
 		}
 	}
-	// 遍历结果集
-	int id_num = 1; // 商品序号
+	// 发送给客户端遍历结果集
+	// 1. 发送给客户端商品数量
+	sendBuffer = to_string(res_num);
+	this->cfd->sendData(sendBuffer.c_str(), sendBuffer.size());
+	// 2. 遍历结果集
 	for (int i = 1; i <= res_num;i++) {
-		cout << "查询购物车序号：" << i << endl;
-		cout << "预购买数量：" << p[i - 1]->freeze_num << endl;
-		p[i - 1]->showProductInfo(0);
+		p[i - 1]->showProductInfo(this->cfd, 1);
 	}
 
-	// 进一步选择对应编号的商品
-	cout << "请输入想修改的购物车序号" << endl;
-	int select_id;
-	cin >> select_id;
-	// 判断选择是否合法
-	while (select_id < 0 || select_id > res_num) {
-		cin.clear();
-		cin.ignore(INT_MAX, '\n');
-		cout << "输入商品序号错误，请重新操作" << endl;
-		cin >> select_id;
-	}
+	// 接收从客户端传送的 选择的 对应编号的商品
+	this->cfd->receiveData(buffer, BUFSIZ);
+	int select_id = atoi(buffer);
+	memset(buffer, 0, BUFSIZ);
 	mysql_free_result(result);
 	Product* selectedProduct = p[select_id - 1];
+
 	// 确认了商品存在，接下来进行更新商品操作
-	// 1. 改变购物车内商品数
-	cout << "请输入更改后的买入商品数量" << endl;
-	int num;
-	cin >> num;
+	// 1. 从客户端接收预计买入数量
+	this->cfd->receiveData(buffer, BUFSIZ);
+	int num = atoi(buffer);
+	memset(buffer, 0, BUFSIZ);
+	// 2. 判断商家现有商品数大于等于购物车内商品数
+	db->op = "select product_remain from products where product_id = "
+		+ to_string(selectedProduct->product_id);
+	db->query();
+	result = mysql_store_result(&db->mysql);
+	if (result == NULL) {
+		std::cerr << "mysql_store_result() failed: " << mysql_error(&db->mysql) << std::endl;
+		return;
+	}
+	row = mysql_fetch_row(result);
+	int product_remain = atoi(row[0]);
+	if (product_remain < num) {
+		/*cout << "商家现有商品数：" << product_remain << endl;
+		cout << "商品数不足，无法加入购物车" << endl;*/
+		this->cfd->sendData("0", BUFSIZ);
+		return;
+	}
+	// 3. 改变购物车内商品数
 	db->op = "update shopcart set num = " + to_string(num)
 		+ " where shopcart_id = " + to_string(selectedProduct->product_remain);
 	db->query();
-	// 2. 改变商家冻结商品数和可卖商品数
+	// 4. 改变商家冻结商品数和可卖商品数
 	int dif_num = num - selectedProduct->freeze_num;
 	db->op = "update products set product_remain = product_remain - "
 		+ to_string(dif_num) + ", freeze_num = freeze_num +"
@@ -317,17 +343,23 @@ void Consumer::updateShopCartProductNum() {
 		+ " where product_id = " + to_string(selectedProduct->product_id);
 	db->query();
 
-	cout << "更新购物车成功！" << endl;
+	this->cfd->sendData("1", BUFSIZ);
+	cout << "客户端更新购物车成功！" << endl;
 
 	delete db;
 }
 
 //生成订单
 void Consumer::generateOrder() {
-	// 购物车删除
+	cout << "* 客户端进行生成订单操作" << endl;
+	// 返回给客户端数据 （-1 / 0 / 1）: (商品名未找到 / 余额不足 / 成功)
+
+	char buffer[BUFSIZ] = { 0 };
+	string sendBuffer;
 	string line_name;
-	cout << "请输入您想在购物车中生成订单的商品名称" << endl;
-	cin >> line_name;
+	this->cfd->receiveData(buffer, BUFSIZ);
+	line_name = buffer;
+	memset(buffer, 0, BUFSIZ);
 
 	Database* db = new Database;
 	MYSQL_ROW row;
@@ -335,19 +367,19 @@ void Consumer::generateOrder() {
 	db->getConnect();
 	// 先算出查询商品在购物车是否存在
 	db->op = "select count(*) from shopcart where product_name like '%" + line_name + "%' and"
-		     " consumer_id = " + to_string(this->id);
-	        +" isCreateOrder <> 0";
+		     " consumer_id = " + to_string(this->id)
+	       + " and isCreateOrder = 0";
 
 	int res_num = db->getResultNum();
 	if (res_num == 0) {
-		cout << "不存在所找商品,请重新操作" << endl;
+		this->cfd->sendData("-1", BUFSIZ);
 		return;
 	}
 	// 确认了商品存在（上面是模糊匹配，要选择具体的商品进行订单生成）, 对没有生成订单的商品进行查询
 	db->op = "select shopcart_id,product_id,business_id,product_name,num,type "
-		"from shopcart where product_name like '%" + line_name + "%'"
-		"and consumer_id = " + to_string(this->id);
-	    +" isCreateOrder = 0";
+		" from shopcart where product_name like '%" + line_name + "%'"
+		" and consumer_id = " + to_string(this->id)
+	  + " and isCreateOrder = 0";
 	db->query();
 	result = mysql_store_result(&db->mysql);
 	if (result == NULL) {
@@ -376,25 +408,19 @@ void Consumer::generateOrder() {
 			break;
 		}
 	}
-	// 遍历结果集
-	int id_num = 1; // 商品序号
+	// 发送给客户端遍历结果集
+	// 1. 发送给客户端商品数量
+	sendBuffer = to_string(res_num);
+	this->cfd->sendData(sendBuffer.c_str(), sendBuffer.size());
+	// 2. 遍历结果集
 	for (int i = 1; i <= res_num;i++) {
-		cout << "查询商品序号：" << i << endl;
-		cout << "预购买数量：" << p[i - 1]->freeze_num << endl;
-		p[i - 1]->showProductInfo(0);
+		p[i - 1]->showProductInfo(this->cfd, 1);
 	}
 
-	// 进一步选择对应编号的商品
-	cout << "请输入想购买列表中的商品序号" << endl;
-	int select_id;
-	cin >> select_id;
-	// 判断选择是否合法
-	while (select_id < 0 || select_id > res_num) {
-		cin.clear();
-		cin.ignore(INT_MAX, '\n');
-		cout << "输入商品序号错误，请重新操作" << endl;
-		cin >> select_id;
-	}
+	// 接收从客户端传送的 选择的 对应编号的商品
+	this->cfd->receiveData(buffer, BUFSIZ);
+	int select_id = atoi(buffer);
+	memset(buffer, 0, BUFSIZ);
 	mysql_free_result(result);
 	Product* selectedProduct = p[select_id - 1];
 	// 判断消费者余额是否足够(先算出订单总价值)
@@ -411,7 +437,8 @@ void Consumer::generateOrder() {
 	double discount_rate = atof(row[1]);
 	double totalPrice = selectedProduct->freeze_num * originPrice * discount_rate;
 	if (this->balance < totalPrice) {
-		cout << "余额不足，无法生成订单" << endl;
+		/*cout << "余额不足，无法生成订单" << endl;*/
+		this->cfd->sendData("0", BUFSIZ);
 		return;
 	}
 
@@ -477,18 +504,18 @@ void Consumer::generateOrder() {
 		ofs << acc->id << " " << acc->name << " " << acc->password << " " << acc->balance << " " << acc->type << endl;
 	}
 	ofs.close();
-	// 打印订单信息
-	cout << "生成订单成功！以下是您的订单" << endl;
-	cout << "==========================================" << endl;
-	cout << "订单编号：" << selectedProduct->product_id << endl;
-	cout << "商家编号：" << selectedProduct->business_id << endl;
-	cout << "商品名称：" << selectedProduct->name << endl;
-	cout << "商品类型：" << productType[selectedProduct->type] << endl;
-	cout << "商品数量：" << selectedProduct->freeze_num << endl;
-	cout << "商品单价：" << selectedProduct->getPrice() << endl;
-	cout << "订单总价：" << totalPrice << endl;
-	cout << "==========================================" << endl;
-	cout << "感谢您的使用" << endl;
+	// 订单信息发送给客户端
+	sendBuffer = "1 ";		// 订单生成成功
+	sendBuffer += "==========================================\n";
+	sendBuffer += "订单编号：" + to_string(selectedProduct->product_id) + "\n";
+	sendBuffer += "商家编号：" + to_string(selectedProduct->business_id) + "\n";
+	sendBuffer += "商品名称：" + selectedProduct->name + "\n";
+	sendBuffer += "商品类型：" + productType[selectedProduct->type] + "\n";
+	sendBuffer += "商品数量：" + to_string(selectedProduct->freeze_num) + "\n";
+	sendBuffer += "商品单价：" + to_string(selectedProduct->getPrice()) + "\n";
+	sendBuffer += "订单总价：" + to_string(totalPrice) + "\n";
+	sendBuffer += "==========================================\n";
+	this->cfd->sendData(sendBuffer.c_str(), sendBuffer.size());
 
 	delete db;
 }

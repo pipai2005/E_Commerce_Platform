@@ -27,6 +27,9 @@
     <ClInclude Include="database_manager.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="tcp_socket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="e_commerce.cpp">
@@ -60,6 +63,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="product.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tcp_socket.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

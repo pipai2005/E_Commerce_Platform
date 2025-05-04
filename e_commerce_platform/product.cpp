@@ -25,16 +25,18 @@ Product::Product(int product_id, int business_id, string name, string descriptio
 	this->type = type;	
 }
 
-void Product::showProductInfo(int level) {
-	cout << "商品编号：" << product_id << endl;
-	cout << "商家编号：" << business_id << endl;
-	cout << "商品名称：" << name << endl;
+void Product::showProductInfo(MySocket* mySocket, int level) {
+	string buffer;
+	buffer += "商品编号：" + to_string(product_id) + "\n";
+	buffer += "商家编号：" + to_string(business_id) + "\n";
+	buffer += "商品名称：" + name + "\n";
 	if (level == 1) {
-		cout << "商品描述：" << description << endl;
-		cout << "商品原价：" << originPrice << endl;
-		cout << "商品折扣率：" << dicount_rate << endl;
-		cout << "商品剩余量：" << product_remain << endl;
+		buffer += "商品描述：" + description + "\n";
+		buffer += "商品原价：" + to_string(originPrice) + "\n";
+		buffer += "商品折扣率：" + to_string(dicount_rate) + "\n";
+		buffer += "商品剩余量：" + to_string(product_remain) + "\n";
 	}
-	cout << "商品类型：" << productType[type] << endl;
-	cout << endl;
+	buffer += "商品类型：" + productType[type] + "\n";
+	buffer += "\n";
+	mySocket->sendData(buffer.c_str(), buffer.size());
 }

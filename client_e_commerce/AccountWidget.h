@@ -1,16 +1,13 @@
 #pragma once
 #include<iostream>
-#include<string>
 #include<vector>
-#include<map>
 #include<fstream>
 #include<cassert>
+#include<map>
+#include<string>
 
-#include"product.h"
-#include"database_manager.h"
 #include"tcp_socket.h"
-
-#define ACCOUNT_FILENAME "accountTable.txt"
+using namespace std;
 
 class Account {
 public:
@@ -25,7 +22,7 @@ public:
 	// 修改密码
 	void updatePassword();
 	// 显示商品每一页 10
-	void displayPage(Database* db, int pageNumber);
+	void displayPage(int passageNum);
 	// 显示平台商品
 	void showProduct();
 	// 查找商品
@@ -40,7 +37,7 @@ public:
 	void consuming(double e);
 
 	//查找(失败返回0)
-	void showProductInfoByName(Database* db, string line_name);
+	void showProductInfoByName();
 	int searchProductByName();
 	int searchProductByType();
 
@@ -55,6 +52,7 @@ public:
 
 class Bussiness : public Account {
 public:
+	Bussiness();
 	Bussiness(int no, string name, string p, double b, int t);
 
 	~Bussiness();
@@ -78,10 +76,11 @@ public:
 
 class Consumer : public Account {
 public:
-	Consumer(int no, string id,string p,double b,int t);
+	Consumer();
+	Consumer(int no, string id, string p, double b, int t);
 
 	~Consumer();
-	
+
 	virtual string getAccountType();
 
 	// 消费者操作

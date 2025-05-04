@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{a8b935f3-eeec-4f31-b219-414bc0b08f9a}</ProjectGuid>
-    <RootNamespace>ecommerceplatform</RootNamespace>
+    <ProjectGuid>{c6e577c8-d6ec-471f-919d-3a845a5eb4fc}</ProjectGuid>
+    <RootNamespace>clientecommerce</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -70,10 +70,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\dev\MySQL\MySQL Server 8.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\dev\MySQL\MySQL Server 8.0\lib;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -108,13 +104,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\dev\MySQL\MySQL Server 8.0\lib;D:\dev\MySQL\MySQL Server 8.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libmysql.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:\dev\MySQL\MySQL Server 8.0\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -134,28 +127,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Account.h" />
-    <ClInclude Include="database_manager.h" />
-    <ClInclude Include="e_commerce.h" />
-    <ClInclude Include="product.h" />
-    <ClInclude Include="tcp_socket.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="account.cpp" />
-    <ClCompile Include="books.cpp" />
-    <ClCompile Include="bussiness.cpp" />
-    <ClCompile Include="clothes.cpp" />
-    <ClCompile Include="Consumer.cpp" />
-    <ClCompile Include="database_manager.cpp" />
-    <ClCompile Include="electronic.cpp" />
-    <ClCompile Include="e_commerce.cpp" />
-    <ClCompile Include="food.cpp" />
+    <ClCompile Include="AccountWidget.cpp" />
+    <ClCompile Include="BusinessWidget.cpp" />
+    <ClCompile Include="ConsumerWidget.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="product.cpp" />
     <ClCompile Include="tcp_socket.cpp" />
+    <ClCompile Include="Widget.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="accountTable.txt" />
+    <ClInclude Include="AccountWidget.h" />
+    <ClInclude Include="tcp_socket.h" />
+    <ClInclude Include="Widget.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
