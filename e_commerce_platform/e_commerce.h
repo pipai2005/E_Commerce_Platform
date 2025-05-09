@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 // 电商管理系统
 
 #include<iostream>

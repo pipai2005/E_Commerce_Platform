@@ -1,3 +1,5 @@
+// UTF-8 编码
+
 #include"AccountWidget.h"
 
 extern map<int, string> productType;

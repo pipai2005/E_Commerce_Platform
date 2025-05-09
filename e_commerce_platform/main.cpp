@@ -1,10 +1,14 @@
 #include"e_commerce.h"
 #include"tcp_socket.h"
+#include<Windows.h>
 
 // 2025.4.17  暂时转学数据库（补）
 #define PORT 8080
 
 int main() {
+	SetConsoleOutputCP(CP_UTF8);
+	SetConsoleCP(CP_UTF8);
+
 
 	ECManager* ecManager = new ECManager;
 

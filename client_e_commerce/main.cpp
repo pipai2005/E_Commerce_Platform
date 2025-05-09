@@ -1,12 +1,17 @@
+// UTF-8 编码
+
 #include"../client_e_commerce/tcp_socket.h"
 #include"../client_e_commerce/Widget.h"
 #include"../client_e_commerce/AccountWidget.h"
+#include<Windows.h>
 
 using namespace std;
 
-
 // 客户端主函数
 int main() {
+	SetConsoleOutputCP(CP_UTF8);
+	SetConsoleCP(CP_UTF8);
+
 	ECManager* ecManager = new ECManager;
 
 	MySocket* mySocket = new MySocket;
